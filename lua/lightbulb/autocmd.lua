@@ -6,14 +6,17 @@ local inrender_row = -1
 local inrender_buf = nil
 
 local namespace = api.nvim_create_namespace('LightBulb')
-local defined = false
 
+local defined = false
 if not defined then
   fn.sign_define(config.sign.hl, { text = config.sign.text, texthl = config.sign.hl })
   defined = true
 end
 
-local function update_lightbulb(bufnr, position)
+---Updates current lightbulb
+---@param bufnr number?
+---@param position table?
+local function update_extmark(bufnr, position)
   if not bufnr or not api.nvim_buf_is_valid(bufnr) then
     return
   end
@@ -47,34 +50,32 @@ local function update_lightbulb(bufnr, position)
   inrender_buf = bufnr
 end
 
+---Queries the LSP servers and updates the lightbulb
+---@param bufnr number
 local function render(bufnr)
   local params = lsp.util.make_range_params()
-  local position = {
-    row = params.range.start.line,
-    col = params.range.start.character,
-  }
   params.context = {
     diagnostics = lsp.diagnostic.get_line_diagnostics(bufnr),
   }
+
+  local position = { row = params.range.start.line, col = params.range.start.character }
 
   lsp.buf_request(bufnr, 'textDocument/codeAction', params, function(_, result, _)
     if api.nvim_get_current_buf() ~= bufnr then
       return
     end
 
-    if result and #result > 0 then
-      update_lightbulb(bufnr, position)
-    else
-      update_lightbulb(bufnr)
-    end
+    update_extmark(bufnr, (result and #result > 0 and position) or nil)
   end)
 end
 
 local timer = uv.new_timer()
 
-local function update_buffer(buf)
+---Ask @glepnir...
+---@param buf number
+local function update(buf)
   timer:stop()
-  update_lightbulb(inrender_buf)
+  update_extmark(inrender_buf)
   timer:start(config.debounce, 0, function()
     timer:stop()
     vim.schedule(function()
@@ -86,10 +87,10 @@ local function update_buffer(buf)
 end
 
 local function setup_autocmd()
-  local name = 'LightBulb'
-  local g = api.nvim_create_augroup(name, { clear = true })
+  local group_name = 'LightBulb'
+  local group = api.nvim_create_augroup(group_name, { clear = true })
   api.nvim_create_autocmd('LspAttach', {
-    group = g,
+    group = group,
     callback = function(opt)
       local client = lsp.get_client_by_id(opt.data.client_id)
       if not client then
@@ -103,44 +104,44 @@ local function setup_autocmd()
       end
 
       local buf = opt.buf
-      local group_name = name .. tostring(buf)
-      local ok = pcall(api.nvim_get_autocmds, { group = group_name })
+      local local_group_name = group_name .. tostring(buf)
+      local ok = pcall(api.nvim_get_autocmds, { group = local_group_name })
       if ok then
         return
       end
-      local group = api.nvim_create_augroup(group_name, { clear = true })
+      local local_group = api.nvim_create_augroup(local_group_name, { clear = true })
       api.nvim_create_autocmd('CursorMoved', {
-        group = group,
+        group = local_group,
         buffer = buf,
         callback = function(args)
-          update_buffer(args.buf)
+          update(args.buf)
         end,
       })
 
       if not config.enable_in_insert then
         api.nvim_create_autocmd('InsertEnter', {
-          group = group,
+          group = local_group,
           buffer = buf,
           callback = function(args)
-            update_lightbulb(args.buf)
+            update_extmark(args.buf)
           end,
         })
       end
 
       api.nvim_create_autocmd('BufLeave', {
-        group = group,
+        group = local_group,
         buffer = buf,
         callback = function(args)
-          update_lightbulb(args.buf)
+          update_extmark(args.buf)
         end,
       })
     end,
   })
 
   api.nvim_create_autocmd('LspDetach', {
-    group = g,
+    group = group,
     callback = function(args)
-      pcall(api.nvim_del_augroup_by_name, name .. tostring(args.buf))
+      pcall(api.nvim_del_augroup_by_name, group_name .. tostring(args.buf))
     end,
   })
 end
