@@ -17,15 +17,11 @@ end
 ---@param bufnr number?
 ---@param position table?
 local function update_extmark(bufnr, position)
-  if not bufnr or not api.nvim_buf_is_valid(bufnr) then
-    return
-  end
+  if not bufnr or not api.nvim_buf_is_valid(bufnr) then return end
   api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
   pcall(fn.sign_unplace, config.sign.hl, { id = inrender_row, buffer = bufnr })
 
-  if not position then
-    return
-  end
+  if not position then return end
 
   if config.sign.enabled then
     fn.sign_place(
@@ -61,9 +57,7 @@ local function render(bufnr)
   local position = { row = params.range.start.line, col = params.range.start.character }
 
   lsp.buf_request(bufnr, 'textDocument/codeAction', params, function(_, result, _)
-    if api.nvim_get_current_buf() ~= bufnr then
-      return
-    end
+    if api.nvim_get_current_buf() ~= bufnr then return end
 
     update_extmark(bufnr, (result and #result > 0 and position) or nil)
   end)
@@ -79,9 +73,7 @@ local function update(buf)
   timer:start(config.debounce, 0, function()
     timer:stop()
     vim.schedule(function()
-      if api.nvim_buf_is_valid(buf) and api.nvim_get_current_buf() == buf then
-        render(buf)
-      end
+      if api.nvim_buf_is_valid(buf) and api.nvim_get_current_buf() == buf then render(buf) end
     end)
   end)
 end
@@ -93,9 +85,7 @@ local function setup_autocmd()
     group = group,
     callback = function(opt)
       local client = lsp.get_client_by_id(opt.data.client_id)
-      if not client then
-        return
-      end
+      if not client then return end
       if
         not client.supports_method('textDocument/codeAction')
         or vim.tbl_contains(config.ignored_clients, client.name)
@@ -106,43 +96,33 @@ local function setup_autocmd()
       local buf = opt.buf
       local local_group_name = group_name .. tostring(buf)
       local ok = pcall(api.nvim_get_autocmds, { group = local_group_name })
-      if ok then
-        return
-      end
+      if ok then return end
       local local_group = api.nvim_create_augroup(local_group_name, { clear = true })
       api.nvim_create_autocmd('CursorMoved', {
         group = local_group,
         buffer = buf,
-        callback = function(args)
-          update(args.buf)
-        end,
+        callback = function(args) update(args.buf) end,
       })
 
       if not config.enable_in_insert then
         api.nvim_create_autocmd('InsertEnter', {
           group = local_group,
           buffer = buf,
-          callback = function(args)
-            update_extmark(args.buf)
-          end,
+          callback = function(args) update_extmark(args.buf) end,
         })
       end
 
       api.nvim_create_autocmd('BufLeave', {
         group = local_group,
         buffer = buf,
-        callback = function(args)
-          update_extmark(args.buf)
-        end,
+        callback = function(args) update_extmark(args.buf) end,
       })
     end,
   })
 
   api.nvim_create_autocmd('LspDetach', {
     group = group,
-    callback = function(args)
-      pcall(api.nvim_del_augroup_by_name, group_name .. tostring(args.buf))
-    end,
+    callback = function(args) pcall(api.nvim_del_augroup_by_name, group_name .. tostring(args.buf)) end,
   })
 end
 

@@ -19,15 +19,11 @@ local M = {
   },
 }
 
-function M.setup(opts)
-  M.config = vim.tbl_deep_extend('force', M.config, opts or {})
-end
+function M.setup(opts) M.config = vim.tbl_deep_extend('force', M.config, opts or {}) end
 
 setmetatable(M, {
   __index = function(self, key)
-    if key ~= 'setup' then
-      return self.config[key]
-    end
+    if key ~= 'setup' then return self.config[key] end
   end,
 })
 
