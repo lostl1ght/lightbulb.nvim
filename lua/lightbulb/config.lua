@@ -1,7 +1,7 @@
 local M = {
   config = {
     debounce = 100,
-    enable_in_insert = true,
+    enable_in_insert = false,
     ignored_clients = {},
     sign = {
       enabled = false,
