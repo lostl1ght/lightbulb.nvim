@@ -1,5 +1,5 @@
 local M = {
-  config = {
+  options = {
     debounce = 100,
     enable_in_insert = false,
     ignored_clients = {},
@@ -19,11 +19,11 @@ local M = {
   },
 }
 
-function M.setup(opts) M.config = vim.tbl_deep_extend('force', M.config, opts or {}) end
+M.setup = function(opts) M.options = vim.tbl_deep_extend('force', M.options, opts or {}) end
 
 setmetatable(M, {
   __index = function(self, key)
-    if key ~= 'setup' then return self.config[key] end
+    if key ~= 'setup' then return self.options[key] end
   end,
 })
 

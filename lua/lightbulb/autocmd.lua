@@ -16,7 +16,7 @@ end
 ---Updates current lightbulb
 ---@param bufnr number?
 ---@param position table?
-local function update_extmark(bufnr, position)
+local update_extmark = function(bufnr, position)
   if not bufnr or not api.nvim_buf_is_valid(bufnr) then return end
   api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)
   pcall(fn.sign_unplace, config.sign.hl, { id = inrender_row, buffer = bufnr })
@@ -48,7 +48,7 @@ end
 
 ---Queries the LSP servers and updates the lightbulb
 ---@param bufnr number
-local function render(bufnr)
+local render = function(bufnr)
   local params = lsp.util.make_range_params()
   params.context = {
     diagnostics = lsp.diagnostic.get_line_diagnostics(bufnr),
@@ -67,7 +67,7 @@ local timer = uv.new_timer()
 
 ---Ask @glepnir...
 ---@param buf number
-local function update(buf)
+local update = function(buf)
   timer:stop()
   update_extmark(inrender_buf)
   timer:start(config.debounce, 0, function()
@@ -78,7 +78,7 @@ local function update(buf)
   end)
 end
 
-local function setup_autocmd()
+local setup_autocmd = function()
   local group_name = 'LightBulb'
   local group = api.nvim_create_augroup(group_name, { clear = true })
   api.nvim_create_autocmd('LspAttach', {
