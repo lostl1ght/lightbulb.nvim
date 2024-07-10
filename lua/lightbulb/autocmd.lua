@@ -36,7 +36,12 @@ local update_extmark = function(bufnr, position)
   if config.virtual_text.enabled then
     api.nvim_buf_set_extmark(bufnr, namespace, position.row, -1, {
       priority = config.virtual_text.priority,
-      virt_text = { { config.virtual_text.text, config.virtual_text.hl } },
+      virt_text = {
+        {
+          (' '):rep(config.virtual_text.spacing) .. config.virtual_text.text,
+          config.virtual_text.hl,
+        },
+      },
       virt_text_pos = 'eol',
       hl_mode = config.virtual_text.hl_mode,
     })
