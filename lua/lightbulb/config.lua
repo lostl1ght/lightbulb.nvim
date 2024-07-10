@@ -11,7 +11,7 @@ local M = {
     },
     virtual_text = {
       enabled = true,
-      priority = 10,
+      priority = 80,
       text = '󰌵',
       hl = 'LightBulbVirtualText',
       hl_mode = 'combine',
