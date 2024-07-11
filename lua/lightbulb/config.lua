@@ -13,7 +13,7 @@ local M = {
       enabled = true,
       spacing = 0,
       priority = 80,
-      text = '󰌵',
+      text = '󰌶',
       hl = 'LightBulbVirtualText',
       hl_mode = 'combine',
     },
