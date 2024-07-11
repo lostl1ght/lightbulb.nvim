@@ -34,7 +34,7 @@ local update_extmark = function(bufnr, position)
   end
 
   if config.virtual_text.enabled then
-    api.nvim_buf_set_extmark(bufnr, namespace, position.row, -1, {
+    api.nvim_buf_set_extmark(bufnr, namespace, position.row, 0, {
       priority = config.virtual_text.priority,
       virt_text = {
         {
