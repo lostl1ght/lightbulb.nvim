@@ -6,14 +6,14 @@ local M = {
     sign = {
       enabled = false,
       priority = 40,
-      text = '󰌵',
+      text = '',
       hl = 'LightBulbText',
     },
     virtual_text = {
       enabled = true,
       spacing = 0,
       priority = 80,
-      text = '󰌶',
+      text = '',
       hl = 'LightBulbVirtualText',
       hl_mode = 'combine',
     },
