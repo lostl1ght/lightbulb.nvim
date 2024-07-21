@@ -23,9 +23,7 @@ local M = {
 M.setup = function(opts) M.options = vim.tbl_deep_extend('force', M.options, opts or {}) end
 
 setmetatable(M, {
-  __index = function(self, key)
-    if key ~= 'setup' then return self.options[key] end
-  end,
+  __index = function(self, key) return self.options[key] end,
 })
 
 return M
