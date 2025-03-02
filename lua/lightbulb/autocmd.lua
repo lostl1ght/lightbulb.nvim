@@ -7,6 +7,13 @@ local inrender_buf = nil
 
 local namespace = api.nvim_create_namespace('LightBulb')
 
+local supports_method
+if vim.fn.has('nvim-0.11') then
+  supports_method = function(client, method, bufnr) return client:supports_method(method, bufnr) end
+else
+  supports_method = function(client, method, bufnr) return client.supports_method(method, bufnr) end
+end
+
 local defined = false
 if not defined then
   fn.sign_define(config.sign.hl, { text = config.sign.text, texthl = config.sign.hl })
@@ -53,10 +60,11 @@ end
 
 ---Queries the LSP servers and updates the lightbulb
 ---@param bufnr number
-local render = function(bufnr)
-  local params = lsp.util.make_range_params()
+local render = function(bufnr, position_encoding)
+  local params = lsp.util.make_range_params(0, position_encoding)
+  ---@diagnostic disable-next-line: inject-field
   params.context = {
-    diagnostics = lsp.diagnostic.get_line_diagnostics(bufnr),
+    diagnostics = vim.diagnostic.get(bufnr, { lnum = api.nvim_win_get_cursor(0)[1] - 1 }),
   }
 
   local position = { row = params.range.start.line, col = params.range.start.character }
@@ -72,13 +80,15 @@ local timer = uv.new_timer()
 
 ---Ask @glepnir...
 ---@param buf number
-local update = function(buf)
+local update = function(buf, position_encoding)
   timer:stop()
   update_extmark(inrender_buf)
   timer:start(config.debounce, 0, function()
     timer:stop()
     vim.schedule(function()
-      if api.nvim_buf_is_valid(buf) and api.nvim_get_current_buf() == buf then render(buf) end
+      if api.nvim_buf_is_valid(buf) and api.nvim_get_current_buf() == buf then
+        render(buf, position_encoding)
+      end
     end)
   end)
 end
@@ -92,7 +102,7 @@ local setup_autocmd = function()
       local client = lsp.get_client_by_id(opt.data.client_id)
       if not client then return end
       if
-        not client.supports_method('textDocument/codeAction')
+        not supports_method(client, 'textDocument/codeAction')
         or vim.tbl_contains(config.ignored_clients, client.name)
       then
         return
@@ -106,7 +116,7 @@ local setup_autocmd = function()
       api.nvim_create_autocmd('CursorMoved', {
         group = local_group,
         buffer = buf,
-        callback = function(args) update(args.buf) end,
+        callback = function(args) update(args.buf, client.offset_encoding) end,
       })
 
       if not config.enable_in_insert then
